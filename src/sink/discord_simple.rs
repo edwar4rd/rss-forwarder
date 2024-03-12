@@ -12,10 +12,10 @@ use reqwest::{Client, IntoUrl, Url};
 use serde::Serialize;
 use tracing::debug;
 
-const PROVIDER: EmbedProvider<'static> = EmbedProvider {
-    name: env!("CARGO_PKG_NAME"),
-    url: Some(env!("CARGO_PKG_REPOSITORY")),
-};
+// const PROVIDER: EmbedProvider<'static> = EmbedProvider {
+//    name: env!("CARGO_PKG_NAME"),
+//    url: Some(env!("CARGO_PKG_REPOSITORY")),
+//};
 
 #[derive(Debug)]
 pub struct DiscordSimple {
@@ -46,6 +46,7 @@ impl Sink for DiscordSimple {
     where
         T: FeedItem<'a>,
     {
+        /*
         let length = items.len();
         let limit = 10_usize;
         let chunk_count = (length as f64 / limit as f64).ceil() as usize;
@@ -71,6 +72,16 @@ impl Sink for DiscordSimple {
                 .await?
                 .error_for_status()?;
         }
+        */
+
+        for item in items {
+            self.client
+                .post(self.url.as_ref())
+                .json(&Body::from_item(item))
+                .send()
+                .await?
+                .error_for_status()?;
+        }
 
         Ok(())
     }
@@ -91,10 +102,20 @@ impl Sink for DiscordSimple {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-struct Body<'a> {
-    embeds: Vec<EmbedObject<'a>>,
+struct Body {
+    // embeds: Vec<EmbedObject<'a>>,
+    content: String,
 }
 
+impl Body where {
+    fn from_item<'a, T: FeedItem<'a>> (item: &'a T) -> Self {
+        Self {
+            content: format!("{}: {}", item.title_as_text().unwrap_or_else(|| "(no title)".into()), item.link().unwrap_or_else(|| "(no link)".into()))
+        }
+    }
+}
+
+/*
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct EmbedObject<'a> {
@@ -188,3 +209,5 @@ struct EmbedProvider<'a> {
     name: &'a str,
     url: Option<&'a str>,
 }
+*/
+
